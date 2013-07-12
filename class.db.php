@@ -73,9 +73,9 @@ class db{
 	 * @return Возвращает db
 	 */
 	public function each( $sql,$callback ){
-		$this->query($sql);
+		$inq = $this->query($sql);
 		if( is_callable($callback) )
-			while($item = mysql_fetch_array($this->inq))
+			while($item = mysql_fetch_array($inq))
 				call_user_func($callback,$item,$this);
 		return $this;
 	}
