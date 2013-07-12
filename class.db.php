@@ -3,7 +3,7 @@
  * @class   	db
  * @author 		leroy <skoder@ya.ru>
  * @site 		http://xdan.ru
- * @version 	1.7
+ * @version 	1.8
  */
 class db{
 	public $sql = '';
