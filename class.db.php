@@ -1,4 +1,19 @@
 <?php
+class Timer{
+	private $start_time;
+	private function get_time(){
+		list($usec, $seconds) = explode(" ", microtime());
+		return ((float)$usec + (float)$seconds);
+	}
+	
+	function start(){
+		return $this->start_time = $this->get_time();
+	}
+	
+	function end($startTime=false){
+		return $this->get_time() - ((!$startTime)?$this->start_time:$startTime);
+	}
+}
 /**
  * @class   	db
  * @author 		leroy <skoder@ya.ru>
@@ -11,7 +26,10 @@ class db{
 	public $sqlcount = 0;
 	public $pfx = '';
 	private $connid = 0;
-	
+	private $_logid = 0; // если указать 1 то будет лошировать всеоперации
+	private function logger($msg,$time){
+		@file_put_contents(dirname(__FILE__).'/.mlog',$time.'-'.$msg."\n",FILE_APPEND);
+	}
 	/**
 	 * При инициализации пдключаетсяк MySQL и подключается к нужной БД
 	 * 
@@ -24,11 +42,16 @@ class db{
 	 * @param $charset кодировка
 	 */
 	function __construct( $server, $user, $password,$dbname,$pfx='pfx_',$charset="utf8" ){
+		if( $this->_logid ){
+			$this->timer = new Timer;
+			$this->timer->start();
+		}
 		if( $this->connid = @mysql_connect($server, $user, $password) ){
 			$this->pfx = $pfx;
 			if( mysql_select_db($dbname, $this->connid) ){
 				$this->query("SET NAMES '".$charset."'") && $this->query("SET CHARSET '".$charset."'") && $this->query("SET CHARACTER SET '".$charset."'") && $this->query("SET SESSION collation_connection = '{$charset}_general_ci'");
 			}
+			$this->_logid&&$this->logger('Время на подключение к '.$user.' '.$dbname,$this->timer->end()); // время на операцию
 		}else{
 			$this->error();
 		}
@@ -38,9 +61,11 @@ class db{
 	 * Выполняет SQL запрос, заменяя #_ на заданный в настройках префикс 
 	 */
 	function query($sql){
+		$this->_logid&&$this->timer->start();
 		$this->sql = str_replace('#_',$this->pfx,$sql);
 		$this->sqlcount++;
 		($this->inq = mysql_query($this->sql,$this->connid))||$this->error();
+		$this->_logid&&$this->logger($this->sql,$this->timer->end());
 		return $this->inq;
 	}
 	
