@@ -121,7 +121,7 @@ class db{
 	 * @example $db->getRowById('book',12,'id','name'); // вернет название книги с id=12
 	 */
 	public function getRowById( $sTable, $id,$fieldname='id',$field='' ) {
-		return $this->getRow("SELECT * FROM `#_".$sTable."` WHERE `$fieldname` ='".$this->escape($id)."'",$field);
+		return $this->getRow("SELECT * FROM `#_".$sTable."` WHERE `$fieldname` ='".$this->escape($id)."' limit 1",$field);
 	}
 	
 	/**
