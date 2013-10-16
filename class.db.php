@@ -1,4 +1,5 @@
 <?php
+if( !class_exists('Timer') ){
 class Timer{
 	private $start_time;
 	private function get_time(){
@@ -14,11 +15,12 @@ class Timer{
 		return $this->get_time() - ((!$startTime)?$this->start_time:$startTime);
 	}
 }
+}
 /**
  * @class   	db
  * @author 		leroy <skoder@ya.ru>
  * @site 		http://xdan.ru
- * @version 	1.8
+ * @version 	1.8.1
  */
 class db{
 	public $sql = '';
@@ -89,6 +91,7 @@ class db{
 		return ($field=='')?$item:$item[$field]; 
 	}
 	
+	 
 	/**
 	 * Перебирает все записи из запроса и передает их в callback функцию
 	 *
@@ -164,6 +167,12 @@ class db{
 		return $items;
 	}
 	
+	/**
+	 * Возвращает все записи из таблицы
+	 */
+	function getAll( $table,$fields='*',$field='' ){
+		return  $this->getRows('select '.$fields.' from `#_'.$table.'`',$field);
+	}
 	/**
 	 * Экранирует значение
 	 */
