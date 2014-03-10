@@ -18,9 +18,9 @@ class Timer{
 }
 /**
  * @class   	db
- * @author 		leroy <skoder@ya.ru>
- * @site 		http://xdan.ru
- * @version 	1.8.1
+ * @author 	leroy <skoder@ya.ru>
+ * @site 	http://xdan.ru
+ * @version 	1.8.2
  */
 class db{
 	public $sql = '';
@@ -29,6 +29,9 @@ class db{
 	public $pfx = '';
 	private $connid = 0;
 	private $_logid = 0; // если указать 1 то будет лошировать всеоперации
+	
+	public $email = 'mail@mail.ru'; // на это ящик будут идти сообщения
+	
 	private function logger($msg,$time){
 		@file_put_contents(dirname(__FILE__).'/.mlog',$time.'-'.$msg."\n",FILE_APPEND);
 	}
@@ -173,12 +176,60 @@ class db{
 	function getAll( $table,$fields='*',$field='' ){
 		return  $this->getRows('select '.$fields.' from `#_'.$table.'`',$field);
 	}
+	
+	/*
+	 * Возвращает ip пользователя
+	 */
+	private function myIP(){
+	    $ipa = explode( ',',@$_SERVER['HTTP_X_FORWARDED_FOR'] );
+	    $ip = isset($_SERVER['HTTP_X_REAL_IP'])?$_SERVER['HTTP_X_REAL_IP']:(isset($_SERVER['REMOTE_ADDR'])?$_SERVER['REMOTE_ADDR']:(!empty($ipa[0])?$ipa[0]:'127.0.0.1'));
+	    return preg_match('#^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$#',$ip)?$ip:'127.0.0.1';
+	}
+ 
+	public $checkAttack = true;
+	private $attackBuffer = array();
+	public $stopAttack = false;
+	 
+	/*
+	 * Проверяет есть ли запрещенные слова и символы в экранируемом выражении
+	 */
+	function isItAttack( $id ){
+	    if( $this->checkAttack and !in_array($id,$this->attackBuffer) ){
+	        $hook = 0 ;
+	        if( 
+	            (preg_match('/[\']/', $id) and $hook=1) or
+	            (preg_match('/(and|null|not)/i', $id) and $hook=3) or
+	            (preg_match('/(union|select|from|where)/i', $id) and $hook=4)or
+	            (preg_match('/(group|order|having|limit)/i', $id) and $hook=5) or
+	            (preg_match('/(into|file|case)/i', $id) and $hook=6) or
+	            (preg_match('/--|#|\/\*/', $id) and $hook=7)
+	        ){
+	            $this->attackBuffer[] = $id;
+	            mail($this->email,'Attack rutaxi.ru',"Site was be attacked - \n\n".
+	                "value:".$id."\n\n".
+	                "hook:".$hook."\n\n".
+	                "ip:".$this->myIP()."\n\n".
+	                "request:".$_SERVER['REQUEST_URI']."\n\n".
+	                "REQUEST:".var_export($_REQUEST,true));
+	            if( $this->stopAttack ){
+	                header('HTTP/1.1 500 Internal Server Error');
+	                throw new Exception('Divizion by zerro');
+	                exit();
+	            }
+	            return true;
+	        }
+	    }
+	    return false;
+	}
+	
 	/**
 	 * Экранирует значение
 	 */
-	function escape($sql){
-        return mysql_real_escape_string($sql,$this->connid);
-    }
+	function escape($value){
+	    $this->isItAttack($value);
+	    return mysql_real_escape_string($value,$this->connid);
+	}
+
 		
 	/**
 	 * Вставка данных в таблицу
